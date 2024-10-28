@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>티켓 서비스</title>
+
+    <script src="/1dba6f43-e141-4072-9d29-3a531d8bf1dc/eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyMjAuODYuMTE2LjExMiIsImlhdCI6MTcyOTczMzk4MiwiZXhwIjoxNzM1NTcwODAwfQ.WPFSPxhVcwxHFojxhMurNvATzZKhNfjSBr1FJHFFHPMoy8PmZb8mSYMbD7QsigJ75vGTd7z5cQX7mck5dpmjOw"></script>
+    <!-- <script src="/1dba6f43-e141-4072-9d29-3a531d8bf1dc/eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIxNzIuMzAuMS4xMDAiLCJpYXQiOjE3Mjk0OTc3MzUsImV4cCI6MTczNTU3MDgwMH0.322OegtWn8ex6lrLibms3iTxxx_m2jE0sWesdtQolEyDOUPCrNwU8KZ2E_UOrYIO9y02Gk_NYu6UrmCy2HPqSg"></script> -->
+  </head>
+  <body>
+    <div class="layout">
+      <div class="flex-container">
+        <div class="seat-container">
+          <div class="title">
+            <span class="title-text">좌석 선택</span>
+            <select name="" id="">
+              <option value="">2024-10-11(금)</option>
+              <option value="">2024-10-12(토)</option>
+              <option value="">2024-10-13(일)</option>
+            </select>
+          </div>
+          <div class="seat-box"></div>
+        </div>
+        <div class="side-container">
+          <div class="logo">티켓 서비스</div>
+          <div class="screen-1"></div>
+          <div class="screen-2"></div>
+          <div class="button-container">
+            <button id="next-btn">좌석 선택</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-box">
+      <div class="text-btn-container">
+        <button id="auto-large-refresh">대량 새로고침</button>
+        <button id="auto-refresh">새로고침</button>
+        <button id="call-large-api">대량 API 호출</button>
+        <button id="call-api">단일 API 호출</button>
+      </div>
+      <div class="logs"></div>
+    </div>
+  </body>
+
+  <script>
+    window.onload = function () {
+      const container = document.querySelector(".seat-box");
+
+      let innerHtml = "";
+      for (let index = 0; index < 500; index++) {
+        let seat = document.createElement("div");
+        seat.classList.add("seat");
+
+        // seat.outerHTML을 사용해 해당 요소의 HTML을 문자열로 변환
+        innerHtml += seat.outerHTML;
+      }
+      container.innerHTML = innerHtml;
+
+      document.querySelectorAll(".seat").forEach(function (el) {
+        // console.error(el);
+        el.addEventListener("click", function () {
+          el.classList.toggle("active");
+          sendAPI();
+        });
+      });
+
+      if (sessionStorage.getItem("auto-large-refresh")) {
+        sessionStorage.setItem("auto-large-refresh", Number(sessionStorage.getItem("auto-large-refresh")) + 1);
+        document.querySelector(".logs").innerHTML = `<div>새로고침 카운트 : ${sessionStorage.getItem("auto-large-refresh")}</div>`;
+
+        if (Number(sessionStorage.getItem("auto-large-refresh")) > 3) {
+          sessionStorage.removeItem("auto-large-refresh");
+        } else {
+          location.href = location.href;
+        }
+      }
+
+      document.querySelector("#auto-large-refresh").addEventListener("click", function () {
+        sessionStorage.setItem("auto-large-refresh", "1");
+
+        location.href = location.href;
+      });
+
+      document.querySelector("#auto-refresh").addEventListener("click", function () {
+        location.href = location.href;
+      });
+
+      document.querySelector("#call-large-api").addEventListener("click", function () {
+        for (let index = 0; index < 10; index++) {
+          sendAPI();
+        }
+      });
+
+      document.querySelector("#call-api").addEventListener("click", function () {
+        sendAPI();
+      });
+
+      document.querySelector("#next-btn").addEventListener("click", function () {
+        sendAPI();
+      });
+    };
+
+    let API_COUNT = 0;
+    let API_LIST = [];
+
+    function sendAPI() {
+      API_COUNT++;
+      API_LIST.push(new Date().getTime());
+      const url = "https://jsonplaceholder.typicode.com/posts";
+      fetch(url)
+        .then((response) => response.json())
+        .then((data) => console.log("Fetch response data:", data))
+        .catch((error) => console.error("Fetch request error:", error));
+
+      const result = countTimeIntervals(API_LIST);
+      console.error("result", result);
+
+      document.querySelector(".logs").innerHTML += `<div>실행 API: ${url}<br />총 실행 횟수: ${API_COUNT} / 실행 시간: ${formatDate(result[result.length - 1].time)} / 초당 실행 횟수: ${result[result.length - 1].currentIntervalCount}</div>`;
+    }
+
+    function formatDate(data) {
+      const date = new Date(data);
+      const yyyy = date.getFullYear();
+      const MM = String(date.getMonth() + 1).padStart(2, "0"); // 월은 0부터 시작하므로 +1
+      const DD = String(date.getDate()).padStart(2, "0");
+      const HH = String(date.getHours()).padStart(2, "0");
+      const mm = String(date.getMinutes()).padStart(2, "0");
+      const SS = String(date.getSeconds()).padStart(2, "0");
+
+      return `${yyyy}-${MM}-${DD} ${HH}:${mm}:${SS}`;
+    }
+
+    function countTimeIntervals(timeList) {
+      if (timeList.length === 0) return [];
+
+      const firstTime = timeList[0];
+      const intervalCounts = [];
+      let currentIntervalCount = 0;
+      let currentIntervalEnd = firstTime + 1000; // 첫 시간부터 1초 간격
+
+      for (const time of timeList) {
+        if (time < currentIntervalEnd) {
+          // 현재 간격 내에 시간값이 있으면 카운트 증가
+          currentIntervalCount++;
+        } else {
+          // 새로운 간격이 시작되면 현재 간격의 카운트를 기록하고, 카운트 초기화
+          intervalCounts.push({ time, currentIntervalCount });
+          currentIntervalCount = 1;
+          // 다음 간격의 끝을 현재 시간 기준으로 설정
+          currentIntervalEnd = time + 1000;
+        }
+      }
+
+      // 마지막 간격의 카운트를 추가
+      intervalCounts.push({ time: currentIntervalEnd, currentIntervalCount });
+
+      return intervalCounts;
+    }
+  </script>
+
+  <style>
+    body {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .layout {
+      max-width: 950px;
+      max-height: 400px;
+      width: 100%;
+      height: 100%;
+      background-color: #fafafa;
+      border-right: 1px solid #aaa;
+    }
+
+    .flex-container {
+      display: flex;
+      height: 100%;
+    }
+
+    .seat-container {
+      width: 75%;
+    }
+
+    .seat-container .title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0 20px 10px;
+    }
+
+    .seat-container .title .title-text {
+      font-size: 16px;
+    }
+
+    .seat-container .title select {
+      width: 150px;
+    }
+
+    .seat-box {
+      background-color: #e2e2e2;
+      height: calc(100% - 59px);
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 40px;
+      align-items: start;
+    }
+
+    .seat-box .seat {
+      width: 10px;
+      height: 10px;
+      background-color: #aaa;
+      cursor: pointer;
+    }
+
+    .seat-box .seat.active {
+      background-color: rgb(34, 158, 17);
+    }
+
+    .side-container {
+      width: 25%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .logo {
+      text-align: center;
+    }
+
+    .screen-1 {
+      height: 100px;
+      width: 100%;
+      background-color: #e2e2e2;
+      border-radius: 5px;
+    }
+
+    .screen-2 {
+      height: 100px;
+      width: 100%;
+      background-color: #e2e2e2;
+      border-radius: 5px;
+    }
+
+    .button-container {
+      width: 100%;
+    }
+
+    .button-container > button {
+      display: inline-block;
+      padding: 10px 0;
+      width: 100%;
+      border: none;
+      background-color: #e2e2e2;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .button-container > button:hover {
+      background-color: #b7b5b5;
+    }
+
+    .text-box {
+      max-width: 950px;
+      height: calc(100vh - 400px);
+      display: flex;
+      border: 1px solid #aaa;
+    }
+
+    .text-box .text-btn-container {
+      width: 200px;
+      padding: 20px;
+    }
+
+    .text-box button {
+      min-width: 80px;
+      border: 0;
+      cursor: pointer;
+      background-color: #595959;
+      color: #fff;
+      border-radius: 5px;
+      transition: all 0.3s;
+      padding: 5px 10px;
+      margin-right: 5px;
+      display: block;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    .text-box button:hover {
+      background-color: #fac001;
+    }
+
+    .text-box .logs {
+      width: calc(100% - 200px);
+      padding: 20px;
+      border-left: 1px solid #aaa;
+      height: 100%;
+      overflow: auto;
+    }
+  </style>
+</html>

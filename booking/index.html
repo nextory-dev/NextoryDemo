@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>예약 서비스</title>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="/1dba6f43-e141-4072-9d29-3a531d8bf1dc/eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyMjAuODYuMTE2LjExMiIsImlhdCI6MTcyOTczMzk4MiwiZXhwIjoxNzM1NTcwODAwfQ.WPFSPxhVcwxHFojxhMurNvATzZKhNfjSBr1FJHFFHPMoy8PmZb8mSYMbD7QsigJ75vGTd7z5cQX7mck5dpmjOw"></script>
+    <!-- <script src="/1dba6f43-e141-4072-9d29-3a531d8bf1dc/eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIxNzIuMzAuMS4xMDAiLCJpYXQiOjE3Mjk0OTc3MzUsImV4cCI6MTczNTU3MDgwMH0.322OegtWn8ex6lrLibms3iTxxx_m2jE0sWesdtQolEyDOUPCrNwU8KZ2E_UOrYIO9y02Gk_NYu6UrmCy2HPqSg"></script> -->
+  </head>
+  <body>
+    <div class="layout">
+      <div class="left">
+        <div class="title">실시간 예약</div>
+        <div id="calendar"></div>
+      </div>
+      <div class="right">
+        <div class="title">예약 가능 리스트</div>
+        <ul class="list"></ul>
+      </div>
+    </div>
+
+    <div class="text-box">
+      <div class="text-btn-container">
+        <button id="auto-large-refresh">대량 새로고침</button>
+        <button id="auto-refresh">새로고침</button>
+        <button id="call-large-api">대량 API 호출</button>
+        <button id="call-api">단일 API 호출</button>
+      </div>
+      <div class="logs"></div>
+    </div>
+  </body>
+
+  <script>
+    window.onload = function () {
+      if (sessionStorage.getItem("auto-large-refresh")) {
+        sessionStorage.setItem("auto-large-refresh", Number(sessionStorage.getItem("auto-large-refresh")) + 1);
+        document.querySelector(".logs").innerHTML = `<div>새로고침 카운트 : ${sessionStorage.getItem("auto-large-refresh")}</div>`;
+
+        if (Number(sessionStorage.getItem("auto-large-refresh")) > 3) {
+          sessionStorage.removeItem("auto-large-refresh");
+        } else {
+          location.href = location.href;
+        }
+      }
+
+      document.querySelector("#auto-large-refresh").addEventListener("click", function () {
+        sessionStorage.setItem("auto-large-refresh", "1");
+
+        location.href = location.href;
+      });
+
+      document.querySelector("#auto-refresh").addEventListener("click", function () {
+        location.href = location.href;
+      });
+
+      document.querySelector("#call-large-api").addEventListener("click", function () {
+        for (let index = 0; index < 10; index++) {
+          sendAPI();
+        }
+      });
+
+      document.querySelector("#call-api").addEventListener("click", function () {
+        sendAPI();
+      });
+    };
+
+    let API_COUNT = 0;
+    let API_LIST = [];
+
+    function sendAPI() {
+      API_COUNT++;
+      API_LIST.push(new Date().getTime());
+      const url = "https://jsonplaceholder.typicode.com/posts";
+      fetch(url)
+        .then((response) => response.json())
+        .then((data) => console.log("Fetch response data:", data))
+        .catch((error) => console.error("Fetch request error:", error));
+
+      const result = countTimeIntervals(API_LIST);
+      console.error("result", result);
+
+      document.querySelector(".logs").innerHTML += `<div>실행 API: ${url}<br />총 실행 횟수: ${API_COUNT} / 실행 시간: ${formatDate(result[result.length - 1].time)} / 초당 실행 횟수: ${result[result.length - 1].currentIntervalCount}</div>`;
+    }
+
+    function formatDate(data) {
+      const date = new Date(data);
+      const yyyy = date.getFullYear();
+      const MM = String(date.getMonth() + 1).padStart(2, "0"); // 월은 0부터 시작하므로 +1
+      const DD = String(date.getDate()).padStart(2, "0");
+      const HH = String(date.getHours()).padStart(2, "0");
+      const mm = String(date.getMinutes()).padStart(2, "0");
+      const SS = String(date.getSeconds()).padStart(2, "0");
+
+      return `${yyyy}-${MM}-${DD} ${HH}:${mm}:${SS}`;
+    }
+
+    function countTimeIntervals(timeList) {
+      if (timeList.length === 0) return [];
+
+      const firstTime = timeList[0];
+      const intervalCounts = [];
+      let currentIntervalCount = 0;
+      let currentIntervalEnd = firstTime + 1000; // 첫 시간부터 1초 간격
+
+      for (const time of timeList) {
+        if (time < currentIntervalEnd) {
+          // 현재 간격 내에 시간값이 있으면 카운트 증가
+          currentIntervalCount++;
+        } else {
+          // 새로운 간격이 시작되면 현재 간격의 카운트를 기록하고, 카운트 초기화
+          intervalCounts.push({ time, currentIntervalCount });
+          currentIntervalCount = 1;
+          // 다음 간격의 끝을 현재 시간 기준으로 설정
+          currentIntervalEnd = time + 1000;
+        }
+      }
+
+      // 마지막 간격의 카운트를 추가
+      intervalCounts.push({ time: currentIntervalEnd, currentIntervalCount });
+
+      return intervalCounts;
+    }
+
+    function generateCalendar(year, month) {
+      const calendar = document.getElementById("calendar");
+      const date = new Date(year, month, 1); // 해당 년도의 해당 달의 첫 번째 날짜
+      let html = `<table class="calendar-table">
+                    <colgroup>
+                        <col style="width: auto;">
+                        <col style="width: auto;">
+                        <col style="width: auto;">
+                        <col style="width: auto;">
+                        <col style="width: auto;">
+                        <col style="width: auto;">
+                        <col style="width: auto;">
+                    </colgroup>
+                    <tr>`;
+
+      // 1. 요일 헤더를 추가
+      const days = ["일", "월", "화", "수", "목", "금", "토"];
+      days.forEach((day) => (html += `<th>${day}</th>`));
+      html += "</tr><tr>";
+
+      // 2. 달력의 첫 번째 주에서 1일 이전의 빈 칸을 채움
+      for (let i = 0; i < date.getDay(); i++) {
+        html += "<td></td>";
+      }
+
+      // 3. 날짜를 채움
+      while (date.getMonth() === month) {
+        const random = Math.floor(Math.random() * 5);
+        if (random === 1) html += `<td class="active">${date.getDate()}</td>`; // 현재 날짜 추가
+        else html += `<td class="default">${date.getDate()}</td>`; // 현재 날짜 추가
+        if (date.getDay() === 6) {
+          // 토요일이면 줄 바꿈
+          html += "</tr><tr>";
+        }
+        date.setDate(date.getDate() + 1); // 다음 날짜로 이동
+      }
+
+      // 4. 마무리 태그 추가
+      html += "</tr></table>";
+      calendar.innerHTML = html; // HTML을 DOM에 추가
+    }
+
+    function generateList() {
+      const list = document.querySelector(".list");
+      let innerHTML = "";
+
+      for (let i = 0; i < 10; i++) {
+        const random = Math.floor(Math.random() * 2);
+
+        innerHTML += `
+         <li>
+            <div class="left-text">
+              <div class="time">${formatDate(new Date())}</div>
+              <div class="grade">${random === 0 ? "루비" : "사파이어"}</div>
+            </div>
+            <div class="right-text">
+              <div class="badge-list">
+                <span class="badge type-1">현장결제</span>
+                <span class="badge type-2">선결제</span>
+              </div>
+              <div class="price">165,000<span>원</span></div>
+            </div>
+          </li>`;
+      }
+
+      list.innerHTML = innerHTML;
+
+      const target = document.querySelectorAll(".list li");
+
+      for (const element of target) {
+        element.addEventListener("click", function () {
+          sendAPI();
+        });
+      }
+    }
+    // 2024년 10월의 달력 생성
+    generateCalendar(2024, 9); // month는 0부터 시작하므로 9는 10월
+    generateList();
+  </script>
+
+  <style>
+    body {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .layout {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      max-width: 950px;
+      max-height: 500px;
+      background-color: #fafafa;
+      border-right: 1px solid #aaa;
+    }
+
+    .left {
+      width: 280px;
+      border-right: 1px dotted #aaa;
+      padding: 10px;
+      display: flex;
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .left .title {
+      width: 100%;
+      font-size: 16px;
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    #calendar {
+      width: 100%;
+      margin-top: 20px;
+      background-color: #e2e2e2;
+      padding: 10px;
+    }
+
+    .calendar-table {
+      width: 100%;
+      text-align: center;
+    }
+
+    .calendar-table tr th {
+      font-weight: 500;
+    }
+
+    .calendar-table tr td {
+      cursor: pointer;
+      color: #fff;
+      padding: 4px 0;
+    }
+
+    .calendar-table tr td.default {
+      background-color: #8d9194;
+    }
+
+    .calendar-table tr td.active {
+      background-color: #33adff;
+    }
+
+    .right {
+      width: 500px;
+      padding: 10px;
+      flex: 1 1;
+      overflow-y: auto;
+    }
+
+    .right .title {
+      width: 100%;
+      font-size: 16px;
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .list {
+      width: 100%;
+      padding: 20px 20px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      column-gap: 2%;
+      row-gap: 0.5rem;
+      list-style: none;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .list > li {
+      width: 48%;
+      background-color: #fff;
+      min-height: 100px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 10px;
+      cursor: pointer;
+    }
+
+    .list > li > .left-text {
+      height: 100%;
+    }
+    .list > li > .left-text .time {
+      color: #007aff;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    .list > li > .left-text .grade {
+      color: #999;
+      display: block;
+      font-size: 0.9rem;
+      letter-spacing: -0.3px;
+      margin-top: 7px;
+    }
+    .list > li > .right-text {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .list > li > .right-text .badge-list {
+      display: flex;
+      column-gap: 4px;
+    }
+    .list > li > .right-text .badge-list .badge {
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      color: #fff;
+    }
+    .list > li > .right-text .badge-list .badge.type-1 {
+      background-color: #4ab6e1;
+    }
+    .list > li > .right-text .badge-list .badge.type-2 {
+      background-color: #007aff;
+    }
+    .list > li > .right-text .price {
+      color: #111;
+      font-size: 1rem;
+      font-weight: 500;
+      text-align: right;
+    }
+    .list > li > .right-text .price > span {
+      font-size: 0.9rem;
+      font-weight: 400;
+      vertical-align: initial;
+    }
+
+    .text-box {
+      max-width: 950px;
+      height: calc(100vh - 500px);
+      display: flex;
+      border: 1px solid #aaa;
+    }
+
+    .text-box .text-btn-container {
+      width: 200px;
+      padding: 20px;
+    }
+
+    .text-box button {
+      min-width: 80px;
+      border: 0;
+      cursor: pointer;
+      background-color: #595959;
+      color: #fff;
+      border-radius: 5px;
+      transition: all 0.3s;
+      padding: 5px 10px;
+      margin-right: 5px;
+      display: block;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    .text-box button:hover {
+      background-color: #fac001;
+    }
+
+    .text-box .logs {
+      width: calc(100% - 200px);
+      padding: 20px;
+      border-left: 1px solid #aaa;
+      height: 100%;
+      overflow: auto;
+    }
+  </style>
+</html>

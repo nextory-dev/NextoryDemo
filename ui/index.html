@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>티켓 서비스</title>
+
+    <!-- <script src="/1dba6f43-e141-4072-9d29-3a531d8bf1dc/eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyMjAuODYuMTE2LjExMiIsImlhdCI6MTcyOTczMzk4MiwiZXhwIjoxNzM1NTcwODAwfQ.WPFSPxhVcwxHFojxhMurNvATzZKhNfjSBr1FJHFFHPMoy8PmZb8mSYMbD7QsigJ75vGTd7z5cQX7mck5dpmjOw"></script> -->
+    <script src="./src/assets/js/color-thief.min.js"></script>
+    <script src="./src/assets/js/dom-to-image.min.js"></script>
+    <script src="./src/assets/js/getEventListeners.min.js"></script>
+    <script src="./src/assets/js/html2canvas.min.js"></script>
+  </head>
+  <body>
+    <div class="layout">
+      <div class="flex-container" data-nx-layer-container>
+        <div class="seat-container" data-nx-layer>
+          <div class="title">
+            <span class="title-text">좌석 선택</span>
+            <select name="" id="">
+              <option value="">2024-10-11(금)</option>
+              <option value="">2024-10-12(토)</option>
+              <option value="">2024-10-13(일)</option>
+            </select>
+          </div>
+          <div class="seat-box"></div>
+        </div>
+        <div class="side-container" data-nx-layer>
+          <div class="logo">티켓 서비스</div>
+          <div class="screen-1" data-nx-panel></div>
+          <div class="screen-2" data-nx-panel></div>
+          <div class="button-container" data-nx-panel>
+            <button data-nx-next-button>좌석 선택</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-box">
+      <div class="text-btn-container">
+        <button onclick="layoutShuffle();">레이아웃 변경</button>
+        <button onclick="generateSelectButton();">좌석 속성 변경</button>
+        <button onclick="generateNextButton();">버튼 속성 변경</button>
+        <div class="button-options">
+          <div class="button-option">
+            <span>기본 배경색</span>
+            <input type="text" name="" id="background" value="#000000" />
+          </div>
+          <div class="button-option">
+            <span>이벤트 배경색</span>
+            <input type="text" name="" id="hover" value="#fac001" />
+          </div>
+          <div class="button-option">
+            <span>기본 폰트색</span>
+            <input type="text" name="" id="font" value="#ffffff" />
+          </div>
+          <label for="flip" class="button-option cursor">
+            <input type="checkbox" name="" id="flip" checked />
+            <span>텍스트 플립 기능</span>
+          </label>
+        </div>
+      </div>
+      <div class="logs"></div>
+    </div>
+  </body>
+
+  <script>
+    let BUTTON_FLAG = false;
+
+    window.onload = function () {
+      const container = document.querySelector(".seat-box");
+
+      let innerHtml = "";
+      for (let index = 0; index < 250; index++) {
+        let seat = document.createElement("div");
+        seat.classList.add("seat");
+        if (Math.floor(Math.random() * 100) % 2 == 1) seat.classList.add("fixed");
+        seat.dataset.nxSelectButton = "";
+
+        // seat.outerHTML을 사용해 해당 요소의 HTML을 문자열로 변환
+        innerHtml += seat.outerHTML;
+      }
+      container.innerHTML = innerHtml;
+
+      document.querySelectorAll(".seat").forEach(function (el) {
+        el.addEventListener("click", clickSeat);
+      });
+
+      function clickSeat(event) {
+        console.error("copy event", event);
+        const el = event.target;
+
+        if (el.classList.contains("fixed")) {
+          alert("이미 선택된 좌석입니다.");
+        } else if (el.classList.contains("active")) {
+          console.log("선택 취소");
+          el.classList.toggle("active");
+        } else {
+          el.classList.toggle("active");
+
+          fetch("https://jsonplaceholder.typicode.com/posts")
+            .then((response) => response.json())
+            .then((data) => console.log("Fetch response data:", data))
+            .catch((error) => console.error("Fetch request error:", error));
+        }
+      }
+    };
+
+    function layoutShuffle() {
+      appendLog("레이아웃 변경");
+
+      const layerContainer = document.querySelector("[data-nx-layer-container]");
+      const layerList = document.querySelectorAll("[data-nx-layer]");
+      // layerContainer.style.display = "flex";
+      // layerContainer.style.flexWrap = "wrap";
+      // layerList.forEach((layer) => {
+      //   layer.style.float = "unset";
+      // });
+
+      // for (let i = layerList.length - 1; i > 0; i--) {
+      if (Math.floor(Math.random() * 100) % 2 == 1) {
+        // layerList[i].after(layerList[i - 1]);
+        // layerList[0].style.float = "right";
+        // layerList[1].style.float = "left";
+        layerContainer.style.flexDirection = "row";
+      } else {
+        layerContainer.style.flexDirection = "row-reverse";
+      }
+      // }
+
+      const panelList = document.querySelectorAll("[data-nx-panel]");
+      const random = Math.floor(Math.random() * 100) % 2;
+
+      panelList[panelList.length - 1].insertAdjacentElement("afterend", panelList[random]);
+    }
+
+    function resetSelectBtn() {
+      const nxLastBtnList = document.querySelectorAll(".seat.active");
+
+      for (const nxLastBtn of nxLastBtnList) {
+        nxLastBtn.classList.remove("active", "fixed");
+      }
+    }
+
+    function generateSelectButton() {
+      resetSelectBtn();
+
+      appendLog("좌석 속성 변경");
+      const nxLastBtnList = document.querySelectorAll("[data-nx-select-button]");
+
+      if (nxLastBtnList.length) {
+        for (const nxLastBtn of nxLastBtnList) {
+          if (nxLastBtn instanceof HTMLImageElement) {
+            // nxLastBtn이 이미지 태그일 경우
+            try {
+              const nxNewBtn = document.createElement(`div-${new Date().getTime()}`);
+              copyStyles(nxLastBtn, nxNewBtn);
+              copyAttributes(nxLastBtn, nxNewBtn);
+              changeColorByImgTag(nxLastBtn, nxNewBtn);
+              nxLastBtn.parentNode.insertBefore(nxNewBtn, nxLastBtn.nextSibling);
+              copyEvent(nxLastBtn, nxNewBtn);
+              nxLastBtn.remove();
+            } catch (error) {
+              console.error("cross origin error");
+            }
+          } else if (nxLastBtn instanceof SVGElement) {
+            // nxLastBtn이 벡터 태그일 경우
+            changeColorByVector(nxLastBtn, nxLastBtn);
+          } else {
+            // nxLastBtn이 일반 html 태그일 경우
+            const nxNewBtn = document.createElement(`div-${new Date().getTime()}`);
+            copyStyles(nxLastBtn, nxNewBtn);
+            copyAttributes(nxLastBtn, nxNewBtn);
+            changeColorByTag(nxLastBtn, nxNewBtn);
+            nxLastBtn.parentNode.insertBefore(nxNewBtn, nxLastBtn.nextSibling);
+            copyEvent(nxLastBtn, nxNewBtn);
+            nxLastBtn.remove();
+          }
+        }
+      }
+
+      function copyEvent(sourceElement, targetElement) {
+        const originalEvent = sourceElement.getEventListeners();
+
+        if (Object.keys(originalEvent).length) {
+          for (const eventType in sourceElement.getEventListeners()) {
+            if (Object.prototype.hasOwnProperty.call(sourceElement.getEventListeners(), eventType)) {
+              const events = sourceElement.getEventListeners()[eventType];
+              for (const event of events) {
+                targetElement.addEventListener(event.type, event.listener);
+              }
+            }
+          }
+        }
+      }
+
+      function copyAttributes(sourceElement, targetElement) {
+        // Copy all attributes
+        for (let attr of sourceElement.attributes) {
+          if (attr.name != "data-nx-next-button") targetElement.setAttribute(attr.name, attr.value);
+        }
+      }
+
+      function copyStyles(sourceElement, targetElement) {
+        // Copy all computed styles
+        const computedStyles = window.getComputedStyle(sourceElement);
+        for (let style of computedStyles) {
+          // if (style == "background-color") {
+          //   targetElement.style[style] = "#888888";
+          // } else {
+          targetElement.style[style] = computedStyles.getPropertyValue(style);
+          // }
+        }
+      }
+
+      function changeColorByImgTag(sourceElement, targetElement) {
+        const colorThief = new ColorThief();
+        const color = colorThief.getColor(sourceElement);
+        const colorText = rgbArrayToString(color);
+
+        let variable = 0;
+
+        if (determineColorShade(colorText) == "dark") variable = 50;
+        else variable = -50;
+        targetElement.style.backgroundColor = adjustColor(colorText, variable);
+      }
+
+      function changeColorByVector(sourceElement, targetElement) {
+        let lastColor = getComputedStyle(sourceElement).fill;
+        let variable = 0;
+
+        if (determineColorShade(lastColor) == "dark") variable = 50;
+        else variable = -50;
+        targetElement.style.fill = adjustColor(lastColor, variable);
+      }
+
+      function changeColorByTag(sourceElement, targetElement) {
+        let lastColor = getComputedStyle(sourceElement).backgroundColor;
+        let variable = 0;
+
+        if (determineColorShade(lastColor) == "dark") variable = 50;
+        else variable = -50;
+        targetElement.style.backgroundColor = adjustColor(lastColor, variable);
+      }
+
+      function adjustColor(rgbStr, adjustment) {
+        // 정규 표현식을 사용하여 RGB 값 추출
+        const regex = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/;
+        const match = rgbStr.match(regex);
+
+        if (!match) {
+          throw new Error("Invalid RGB format");
+        }
+
+        // RGB 값 추출
+        let [_, r, g, b] = match;
+        r = parseInt(r, 10);
+        g = parseInt(g, 10);
+        b = parseInt(b, 10);
+
+        // 각 색상 값 조정
+        r = Math.min(255, Math.max(0, r + adjustment));
+        g = Math.min(255, Math.max(0, g + adjustment));
+        b = Math.min(255, Math.max(0, b + adjustment));
+
+        // 조정된 RGB 문자열 생성
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      function rgbArrayToString(rgbArray) {
+        // 배열이 올바른 길이(3)인지 확인
+        if (rgbArray.length !== 3 || !rgbArray.every((num) => Number.isInteger(num) && num >= 0 && num <= 255)) {
+          throw new Error("Invalid RGB array");
+        }
+
+        // 배열의 값을 문자열로 변환
+        const [r, g, b] = rgbArray;
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      function determineColorShade(rgbString) {
+        // RGB 문자열에서 숫자 값 추출
+        const match = rgbString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+
+        if (!match) {
+          throw new Error("Invalid RGB string format");
+        }
+
+        const [, r, g, b] = match.map(Number);
+
+        // 색상 밝기 계산
+        const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        // 기준값 설정 (128은 중간값, 0~255의 범위에서 중간값)
+        const threshold = 128;
+
+        // 밝기와 기준값 비교하여 색상 구분
+        return brightness >= threshold ? "light" : "dark";
+      }
+    }
+
+    function resetNextBtn() {
+      document.querySelector(".button-container").innerHTML = "<button data-nx-next-button>좌석 선택</button>";
+    }
+
+    function generateNextButton() {
+      if (BUTTON_FLAG) resetNextBtn();
+      BUTTON_FLAG = true;
+
+      appendLog("버튼 속성 변경");
+      const nxLastBtn = document.querySelector("[data-nx-next-button]");
+
+      const NEXT_BTN_COLOR = document.querySelector("#background").value;
+      const NEXT_BTN_HOVER_COLOR = document.querySelector("#hover").value;
+      const NEXT_BTN_FONT_COLOR = document.querySelector("#font").value;
+
+      if (nxLastBtn) {
+        let nxNewBtn = document.createElement("div");
+        // text flip 옵션이 켜진 경우에만 텍스트 random flip
+        nxNewBtn.innerHTML = document.querySelector("#flip").checked ? flipAndTextToHtml(nxLastBtn.innerText) : nxLastBtn.innerText;
+        copyAttributes(nxLastBtn, nxNewBtn);
+        copyStyles(nxLastBtn, nxNewBtn);
+        nxLastBtn.parentNode.insertBefore(nxNewBtn, nxLastBtn.nextSibling);
+        nxLastBtn.setAttribute("style", "display:none");
+
+        nxNewBtn.addEventListener("mouseenter", function () {
+          nxNewBtn.style.backgroundColor = NEXT_BTN_HOVER_COLOR;
+        });
+        nxNewBtn.addEventListener("mouseleave", function () {
+          nxNewBtn.style.backgroundColor = NEXT_BTN_COLOR;
+        });
+
+        const originalHREF = checkAndGetAttribute(nxLastBtn, "href");
+        if (originalHREF) nxNewBtn.setAttribute("onclick", originalHREF);
+
+        const originalOnclick = checkAndGetAttribute(nxLastBtn, "onclick");
+        if (originalOnclick) nxNewBtn.setAttribute("onclick", originalOnclick);
+
+        setTimeout(() => {
+          copyEvent(nxLastBtn, nxNewBtn);
+          nxLastBtn.remove();
+
+          html2canvas(nxNewBtn, { scale: 3 }).then(function (canvas) {
+            let imgBtn = document.createElement("img");
+            imgBtn.setAttribute("src", canvas.toDataURL("image/jpeg"));
+            imgBtn.setAttribute("style", "cursor: pointer;");
+            copyStyles(nxNewBtn, imgBtn);
+            nxNewBtn.parentNode.insertBefore(imgBtn, nxNewBtn.nextSibling);
+
+            imgBtn.addEventListener("click", (event) => {
+              nxNewBtn.click();
+            });
+            nxNewBtn.remove();
+          });
+        }, 10);
+      }
+
+      function checkAndGetAttribute(element, attribute) {
+        if (element.hasAttribute(attribute)) {
+          return element.getAttribute(attribute);
+        } else {
+          return null;
+        }
+      }
+
+      function copyEvent(sourceElement, targetElement) {
+        const originalEvent = sourceElement.getEventListeners();
+
+        if (Object.keys(originalEvent).length) {
+          for (const eventType in sourceElement.getEventListeners()) {
+            if (Object.prototype.hasOwnProperty.call(sourceElement.getEventListeners(), eventType)) {
+              const events = sourceElement.getEventListeners()[eventType];
+              for (const event of events) {
+                targetElement.addEventListener(event.type, event.listener);
+              }
+            }
+          }
+        }
+      }
+
+      function copyAttributes(sourceElement, targetElement) {
+        // Copy all attributes
+        for (let attr of sourceElement.attributes) {
+          if (attr.name != "data-nx-next-button") targetElement.setAttribute(attr.name, attr.value);
+        }
+      }
+
+      function copyStyles(sourceElement, targetElement) {
+        // Copy all computed styles
+        const computedStyles = window.getComputedStyle(sourceElement);
+        for (let style of computedStyles) {
+          if (style == "background-color") {
+            targetElement.style[style] = NEXT_BTN_COLOR;
+          } else if (style == "color") {
+            targetElement.style[style] = NEXT_BTN_FONT_COLOR;
+          } else if (style.indexOf("-webkit-") != -1) {
+            console.log("속성 무시");
+          } else {
+            targetElement.style[style] = computedStyles.getPropertyValue(style);
+          }
+        }
+      }
+
+      function flipAndTextToHtml(orgText) {
+        const textSplit = orgText.split("");
+
+        for (let index = 0; index < textSplit.length; index++) {
+          if (textSplit[index] != " ") {
+            const random = Math.floor(Math.random() * 2);
+            if (random === 0) textSplit[index] = `<span style="display: inline-block; line-height: 1; transform: scaleX(-1);">${textSplit[index]}</span>`;
+            else if (random === 1) textSplit[index] = `<span style="display: inline-block; line-height: 1; transform: scaleX(1);">${textSplit[index]}</span>`;
+          }
+        }
+
+        return textSplit.join("");
+      }
+    }
+
+    function appendLog(text) {
+      document.querySelector(".logs").innerHTML += `<div>${text}</div>`;
+    }
+  </script>
+
+  <style>
+    body {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .layout {
+      max-width: 950px;
+      max-height: 400px;
+      width: 100%;
+      height: 100%;
+      background-color: #fafafa;
+      border-right: 1px solid #aaa;
+    }
+
+    .flex-container {
+      display: flex;
+      height: 100%;
+    }
+
+    .seat-container {
+      width: 75%;
+    }
+
+    .seat-container .title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0 20px 10px;
+    }
+
+    .seat-container .title .title-text {
+      font-size: 16px;
+    }
+
+    .seat-container .title select {
+      width: 150px;
+    }
+
+    .seat-box {
+      background-color: #e2e2e2;
+      height: calc(100% - 59px);
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 40px;
+      align-items: start;
+    }
+
+    .seat-box .seat {
+      width: 20px;
+      height: 20px;
+      background-color: #aaa;
+      cursor: pointer;
+    }
+
+    .seat-box .seat.active {
+      background-color: rgb(34, 158, 17) !important;
+    }
+
+    .seat-box .seat.fixed {
+      background-color: rgb(158, 64, 17);
+    }
+
+    .side-container {
+      width: 25%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .logo {
+      text-align: center;
+    }
+
+    .screen-1 {
+      height: 100px;
+      width: 100%;
+      background-color: #c6d46a;
+      border-radius: 5px;
+    }
+
+    .screen-2 {
+      height: 100px;
+      width: 100%;
+      background-color: #497cba;
+      border-radius: 5px;
+    }
+
+    .button-container {
+      width: 100%;
+    }
+
+    .button-container > button {
+      display: inline-block;
+      padding: 0;
+      height: 36px;
+      line-height: 36px;
+      width: 100%;
+      border: none;
+      background-color: #e2e2e2;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 1.1rem;
+    }
+
+    .button-container > button:hover {
+      background-color: #b7b5b5;
+    }
+
+    .text-box {
+      max-width: 950px;
+      height: calc(100vh - 400px);
+      display: flex;
+      border: 1px solid #aaa;
+    }
+
+    .text-box .text-btn-container {
+      width: 200px;
+      padding: 20px;
+    }
+
+    .text-box .button-options .button-option {
+      margin-bottom: 10px;
+    }
+
+    .text-box .button-options .button-option.cursor {
+      cursor: pointer;
+    }
+
+    .text-box button {
+      min-width: 80px;
+      border: 0;
+      cursor: pointer;
+      background-color: #595959;
+      color: #fff;
+      border-radius: 5px;
+      transition: all 0.3s;
+      padding: 5px 10px;
+      margin-right: 5px;
+      display: block;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    .text-box button:hover {
+      background-color: #fac001;
+    }
+
+    .text-box .logs {
+      width: calc(100% - 200px);
+      padding: 20px;
+      border-left: 1px solid #aaa;
+      height: 100%;
+      overflow: auto;
+    }
+  </style>
+</html>
