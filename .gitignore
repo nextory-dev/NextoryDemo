@@ -1,3 +1,5 @@
 /certs
 docker-compose.yml
 Dockerfile
+nextory.conf
+*.sh
